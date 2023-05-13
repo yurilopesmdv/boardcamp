@@ -1,7 +1,12 @@
 import  {db} from "../database/database.connection.js"
 
 export async function getAllCustomers(req, res) {
+    const {cpf: filter} = req.query
     try {
+        if(filter) {
+            const filteredCustomers = await db.query(`SELECT * FROM customers WHERE cpf LIKE $1`, [`${filter}%`])
+            return res.status(200).send(filteredCustomers.rows)
+        }
         const customers = await db.query(`SELECT * FROM customers;`)
         res.status(200).send(customers.rows)
     } catch(err) {
@@ -10,7 +15,14 @@ export async function getAllCustomers(req, res) {
 }
 
 export async function getCustomerById(req, res) {
-    
+    const {id} = req.params
+    try {
+        const customer = await db.query(`SELECT * FROM customers WHERE customers.id=$1`, [id])
+        if(customer.rowCount < 1) return res.sendStatus(404)
+        res.status(200).send(customer.rows[0])
+    } catch(err) {
+        res.status(500).send(err.message)
+    }
 }
 
 export async function createCustomer(req, res) {
@@ -29,5 +41,13 @@ export async function createCustomer(req, res) {
     }
 }
 export async function updateCustomer(req, res) {
-    
+    const {id} = req.params
+    const {name, phone, cpf, birthday} = req.body
+    try {
+        const otherCustomer = await db.query(`SELECT * FROM customers WHERE cpf=$1 AND id <> $2`, [cpf, id])
+        if(otherCustomer.rowCount > 0) return res.sendStatus(409)
+        
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
 }
