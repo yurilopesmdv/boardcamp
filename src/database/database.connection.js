@@ -5,7 +5,8 @@ dotenv.config()
 
 const { Pool } = pg
 
-const configDatabase = {
+const db = new Pool({
     connectionSring: process.env.DATABASE_URL
-}
-export const db = new Pool(configDatabase)
+})
+
+export default db

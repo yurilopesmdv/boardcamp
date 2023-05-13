@@ -6,6 +6,7 @@ import rentalsRouter from "./rentals.routes.js";
 const router = Router();
 
 router.use(gamesRouter)
+router.get("/health", (req, res) => res.send(200))
 router.use(customerRouter)
 router.use(rentalsRouter)
 
