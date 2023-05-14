@@ -1,15 +1,23 @@
 import  {db} from "../database/database.connection.js"
+import dayjs from "dayjs"
 
 export async function getAllCustomers(req, res) {
     const {cpf: filter} = req.query
     try {
         if(filter) {
             const filteredCustomers = await db.query(`SELECT * FROM customers WHERE cpf LIKE $1`, [`${filter}%`])
-            
-            return res.status(200).send(filteredCustomers.rows)
+            const treatedCustomers = filteredCustomers?.rows.map((cust) => ({
+                ... cust,
+                birthday: dayjs(cust.birthday).format('YYYY-MM-DD')
+            }))
+            return res.status(200).send(treatedCustomers)
         }
         const customers = await db.query(`SELECT * FROM customers;`)
-        res.status(200).send(customers.rows)
+        const treatedCustomers = customers?.rows.map((cust) => ({
+            ... cust,
+            birthday: dayjs(cust.birthday).format('YYYY-MM-DD')
+        }))
+        res.status(200).send(treatedCustomers)
     } catch(err) {
         res.status(500).send(err.message)
     }
