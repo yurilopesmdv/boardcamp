@@ -28,7 +28,11 @@ export async function getCustomerById(req, res) {
     try {
         const customer = await db.query(`SELECT * FROM customers WHERE customers.id=$1`, [id])
         if(customer.rowCount < 1) return res.sendStatus(404)
-        res.status(200).send(customer.rows[0])
+        const treatedCustomers = customer?.rows.map((cust) => ({
+            ... cust,
+            birthday: dayjs(cust.birthday).format('YYYY-MM-DD')
+        }))
+        return res.status(200).send(treatedCustomers)
     } catch(err) {
         res.status(500).send(err.message)
     }

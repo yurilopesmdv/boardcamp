@@ -7,27 +7,22 @@ export async function getAllRentals(req, res) {
         SELECT 
                 rentals.*,
                 customers.id AS "customer.id",
-                customers.name AS "customer.name",
-                games.id AS "game.id",
-                games.name AS "game.name"
+                customers.name AS "customerName",
+                games.id AS "gameId",
+                games.name AS "gameName"
                 FROM customers
             JOIN rentals ON customers.id = rentals."customerId"
             JOIN games ON games.id = rentals."gameId"
         `)
         const treatedRentals = rentals?.rows.map((rental) => {
-            const {id, customerId, gameId, rentDate, daysRented, returnDate, originalPrice, delayFee} = rental
+            const {id, customerId, gameId, rentDate, daysRented, returnDate, originalPrice, delayFee, gameName, customerName } = rental
             return {
                 id, customerId, gameId, rentDate: dayjs(rentDate).format('YYYY-MM-DD'),
                 daysRented, returnDate: returnDate ? dayjs(returnDate).format('YYYY-MM-DD') : null,
                 originalPrice, delayFee,
-                customer: {
-                    id: rental['customer.id'],
-                    name: rental['customer.id']
-                },
-                game: {
-                    id: rental['game.id'],
-                    name: rental['game.name']
-                }}
+                customer: {id: customerId, name: customerName},
+                game: {id: gameId, name: gameName}
+            }
             })
         res.send(treatedRentals)
     } catch(err) {
