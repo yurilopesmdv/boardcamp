@@ -1,8 +1,8 @@
 import  {db}  from "../database/database.connection.js"
 import dayjs from 'dayjs'
+import { differenceInDays } from 'date-fns'
 
 export async function getAllRentals(req, res) {
-    
     try {
         const rentals = await db.query(`
         SELECT 
@@ -80,12 +80,18 @@ export async function endRental(req, res) {
         if(!rental.rows[0]) return res.sendStatus(404)
         if(rental.rows[0].returnDate !== null) return res.sendStatus(400)
 
-        const rentDate = dayjs(rental.rows[0].rentDate)
-        const returnDate = dayjs()
-        const daysDiff = returnDate.diff(rentDate, 'days')
+        const rentDate = new Date(rental.rows[0].rentDate)
+        const returnDate = new Date
         const pricePerDay = rental.rows[0].pricePerDay
-        
-        const delayFee = daysDiff * pricePerDay
+        const qntDaysRented = rental.rows[0].daysRented
+        let delayFee
+        if(returnDate.getTime() > rentDate.getTime()) {
+            const dayOff = differenceInDays(returnDate, rentDate)
+            if(dayOff > qntDaysRented) {
+                const after = dayOff - qntDaysRented
+                delayFee = after * pricePerDay
+            }
+        }
         await db.query(`
         UPDATE rentals
             SET "returnDate" = $2, "delayFee" = $3
@@ -104,7 +110,7 @@ export async function deleteRental(req, res) {
         if(rental.rowCount < 1) return res.sendStatus(404)
         if(!rental.rows[0].returnDate) return res.sendStatus(400)
         await db.query(`
-        DELETE * FROM rentals
+        DELETE FROM rentals
         WHERE id=$1;
         `, [id])
         res.sendStatus(200)
