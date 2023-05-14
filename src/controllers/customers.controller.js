@@ -32,7 +32,7 @@ export async function getCustomerById(req, res) {
             ... cust,
             birthday: dayjs(cust.birthday).format('YYYY-MM-DD')
         }))
-        return res.status(200).send(treatedCustomers)
+        return res.status(200).send(treatedCustomers[0])
     } catch(err) {
         res.status(500).send(err.message)
     }
@@ -64,6 +64,7 @@ export async function updateCustomer(req, res) {
             SET name = $1, phone = $2, cpf = $3, birthday = $4
             WHERE id = $5
             `, [name, phone, cpf, birthday, id])
+        res.sendStatus(200)
     } catch (err) {
         res.status(500).send(err.message)
     }
