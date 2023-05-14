@@ -69,12 +69,16 @@ export async function endRental(req, res) {
     const {id} = req.params
     try {
         const rental = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
+        const gameId = rental.rows[0].gameId
+        const game = await db.query(`SELECT * FROM games WHERE id=$1`, [gameId])
         if(rental.rowCount < 1) return res.sendStatus(404)
         if(rental.rows[0].returnDate !== null) return res.sendStatus(400)
 
         const returnDate = dayjs().format("YYYY-MM-DD")
-        const daysDiff = returnDate.diff(rental.rows[0].rentDate)
-        const pricePerDay = rental.rows[0].pricePerDay
+        const daysDiff = dayjs(returnDate).diff(dayjs(rental.rows[0].rentDate), 'days')
+        console.log(daysDiff)
+        const pricePerDay = game.rows[0].pricePerDay
+        
         const delayFee = daysDiff * pricePerDay
         await db.query(`
         UPDATE rentals
