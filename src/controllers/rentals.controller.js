@@ -32,8 +32,34 @@ export async function getAllRentals(req, res) {
 }
 
 export async function postRental(req, res) {
+    const {customerId, gameId, daysRented} = req.body
     try {
-
+        //Existence validate
+        const costumerExists = await db.query(`SELECT * FROM customers WHERE id=$1`, [customerId])
+        const gameExists = await db.query(`SELECT * FROM games WHERE id=$1`, [gameId])
+        if(!costumerExists.rowCount || !gameExists.rowCount ) return res.sendStatus(400)
+        //Quantity validate
+        
+        const rentals = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1 AND "returnDate" is NULL`, [gameId])
+        const stockTotal = gameExists.rows[0].stockTotal
+        if(rentals.rowCount - stockTotal < 1) return res.sendStatus(400)
+        
+        
+        const pricePerDay = gameExists.rows[0].pricePerDay
+        const {rentDate, returnDate, originalPrice, delayFee} = {
+            rentDate: dayjs().format("YYYY-MM-DD"),
+            returnDate: null,
+            originalPrice: daysRented * pricePerDay,
+            delayFee: null
+        }
+        
+        const rent = await db.query(`
+        INSERT INTO rentals
+        ("customerId", "gameId", "rentDate", "daysRented", "returnDate", "originalPrice", "delayFee")
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, 
+        [customerId, gameId, rentDate, daysRented, returnDate, originalPrice, delayFee])
+        res.sendStatus(201)
     } catch(err) {
         res.status(500).send(err.message)
     }
