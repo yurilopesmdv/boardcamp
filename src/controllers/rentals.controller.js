@@ -13,7 +13,7 @@ export async function getAllRentals(req, res) {
                 games.name AS "gameName"
                 FROM customers
             JOIN rentals ON customers.id = rentals."customerId"
-            JOIN games ON games.id = rentals."gameId"
+            JOIN games ON games.id = rentals."gameId";
         `)
         const treatedRentals = rentals?.rows.map((rental) => {
             const {id, customerId, gameId, rentDate, daysRented, returnDate, originalPrice, delayFee, gameName, customerName } = rental
@@ -68,22 +68,28 @@ export async function postRental(req, res) {
 export async function endRental(req, res) {
     const {id} = req.params
     try {
-        const rental = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
-        const gameId = rental.rows[0].gameId
-        const game = await db.query(`SELECT * FROM games WHERE id=$1`, [gameId])
-        if(rental.rowCount < 1) return res.sendStatus(404)
+        const rental = await db.query(`
+        SELECT 
+            rentals.*, 
+            games."pricePerDay"
+        FROM rentals 
+            JOIN games
+            ON rentals."gameId" = games.id
+            WHERE rentals.id=$1;
+        `, [id])
+        if(!rental.rows[0]) return res.sendStatus(404)
         if(rental.rows[0].returnDate !== null) return res.sendStatus(400)
 
-        const returnDate = dayjs().format("YYYY-MM-DD")
-        const daysDiff = dayjs(returnDate).diff(dayjs(rental.rows[0].rentDate), 'days')
-        console.log(daysDiff)
-        const pricePerDay = game.rows[0].pricePerDay
+        const rentDate = dayjs(rental.rows[0].rentDate)
+        const returnDate = dayjs()
+        const daysDiff = returnDate.diff(rentDate, 'days')
+        const pricePerDay = rental.rows[0].pricePerDay
         
         const delayFee = daysDiff * pricePerDay
         await db.query(`
         UPDATE rentals
             SET "returnDate" = $2, "delayFee" = $3
-            WHERE id=$1
+            WHERE id=$1;
         `, [id, returnDate, delayFee])
         res.sendStatus(200)
     } catch(err) {
@@ -92,14 +98,14 @@ export async function endRental(req, res) {
 }
 
 export async function deleteRental(req, res) {
-    const {id} = req.params
+    const { id } = req.params
     try {
-        const rental = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
+        const rental = await db.query(`SELECT * FROM rentals WHERE id=$1;`, [id])
         if(rental.rowCount < 1) return res.sendStatus(404)
         if(!rental.rows[0].returnDate) return res.sendStatus(400)
         await db.query(`
         DELETE * FROM rentals
-        WHERE id=$1
+        WHERE id=$1;
         `, [id])
         res.sendStatus(200)
     } catch(err) {
