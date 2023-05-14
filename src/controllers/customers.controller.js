@@ -5,6 +5,7 @@ export async function getAllCustomers(req, res) {
     try {
         if(filter) {
             const filteredCustomers = await db.query(`SELECT * FROM customers WHERE cpf LIKE $1`, [`${filter}%`])
+            
             return res.status(200).send(filteredCustomers.rows)
         }
         const customers = await db.query(`SELECT * FROM customers;`)
@@ -46,7 +47,11 @@ export async function updateCustomer(req, res) {
     try {
         const otherCustomer = await db.query(`SELECT * FROM customers WHERE cpf=$1 AND id <> $2`, [cpf, id])
         if(otherCustomer.rowCount > 0) return res.sendStatus(409)
-        
+        await db.query(`
+        UPDATE customers
+            SET name = $1, phone = $2, cpf = $3, birthday = $4
+            WHERE id = $5
+            `, [name, phone, cpf, birthday, id])
     } catch (err) {
         res.status(500).send(err.message)
     }
