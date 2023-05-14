@@ -37,12 +37,12 @@ export async function postRental(req, res) {
         //Existence validate
         const costumerExists = await db.query(`SELECT * FROM customers WHERE id=$1`, [customerId])
         const gameExists = await db.query(`SELECT * FROM games WHERE id=$1`, [gameId])
-        if(!costumerExists.rowCount || !gameExists.rowCount ) return res.sendStatus(400)
+        if(!costumerExists.rowCount || !gameExists.rowCount ) return res.status(400).send('UserId ou GameId inválidos')
         //Quantity validate
         
         const rentals = await db.query(`SELECT * FROM rentals WHERE "gameId"=$1 AND "returnDate" is NULL`, [gameId])
         const stockTotal = gameExists.rows[0].stockTotal
-        if(rentals.rowCount - stockTotal < 1) return res.sendStatus(400)
+        if(stockTotal <= rentals.rowCount) return res.status(400).send('Stock problems')
         
         
         const pricePerDay = gameExists.rows[0].pricePerDay
@@ -66,8 +66,13 @@ export async function postRental(req, res) {
 }
 
 export async function endRental(req, res) {
+    const {id} = req.params
     try {
+        const rental = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
+        if(rental.rowCount < 1) return res.sendStatus(404)
+        if(rental.rows[0].returnDate !== null) return res.sendStatus(400)
 
+        await db.query(`UPDATE`, [id])
     } catch(err) {
         res.status(500).send(err.message)
     }
